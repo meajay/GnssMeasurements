@@ -1,0 +1,242 @@
+package testme.java.com.gpsdatalogger;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
+import android.util.Log;
+import android.view.ScaleGestureDetector;
+import android.view.View;
+import android.widget.ScrollView;
+import android.widget.Scroller;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.ActivityRecognition;
+
+public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener , View.OnClickListener{
+
+   private GoogleApiClient mGoogleApiClient;
+   private boolean isPermissionEnabled;
+   private Logger logger ;
+   public TextView logText  , start , end ;
+   public ScrollView scrollView ;
+   private boolean isStartPressed = false , isEndPressed = false ;
+   private  GnssContainer gnssContainer;
+    private final UIComponent uiComponent = new UIComponent();
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_gps_logger);
+        logText = findViewById(R.id.agl_log);
+        start = findViewById(R.id.agl_start);
+        end = findViewById(R.id.agl_end);
+        scrollView = findViewById(R.id.agl_scroll);
+
+        start.setOnClickListener(this);
+        end.setOnClickListener(this);
+
+        isPermissionEnabled = hasPermissions(this);
+        if (isPermissionEnabled) {
+            setUpLogger();
+        } else {
+            requestPermissions(Constants.REQUIRED_PERMISSIONS, Constants.LOCATION_REQUEST_ID);
+        }
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(gnssContainer!=null) {
+            gnssContainer.unregisterAll();
+        }
+        super.onDestroy();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.agl_start:
+                if(isPermissionEnabled) {
+                    if (isStartPressed) {
+                        Toast.makeText(this, getString(R.string.already_logging), Toast.LENGTH_LONG).show();
+                    } else {
+                        isStartPressed = true;
+                        isEndPressed = false;
+                        if(gnssContainer!=null) {
+                            gnssContainer.registerAll();
+                        }
+                        Toast.makeText(this, getString(R.string.logging_start), Toast.LENGTH_LONG).show();
+                    }
+                }
+                else
+                    Toast.makeText(this,getString(R.string.allow_permissions) ,Toast.LENGTH_LONG).show();
+                break ;
+
+            case R.id.agl_end:
+                if(isPermissionEnabled) {
+                    if (isEndPressed) {
+                        Toast.makeText(this, getString(R.string.first_start), Toast.LENGTH_LONG).show();
+                    } else {
+                        isEndPressed = true;
+                        isStartPressed = false;
+                        if(gnssContainer!=null) {
+                            gnssContainer.unregisterAll();
+                        }
+                        Toast.makeText(this, getString(R.string.logging_end), Toast.LENGTH_LONG).show();
+                    }
+                }
+                else
+                Toast.makeText(this,getString(R.string.allow_permissions) ,Toast.LENGTH_LONG).show();
+                break;
+
+
+        }
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.i(Constants.LOG_TAG, "Connection failed: ErrorCode = " + connectionResult.getErrorCode());
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        Log.i(Constants.LOG_TAG, "Connected to GoogleApiClient");
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.i(Constants.LOG_TAG, "Connected Suspended");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+
+        boolean flag = false;
+        for (int i = 0; i < grantResults.length; i++) {
+            if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                flag = true;
+            }
+        }
+        if (flag) {
+                setUpLogger();
+        }
+        else{
+            Toast.makeText(this, getString(R.string.permission_disable) , Toast.LENGTH_LONG).show();
+            logText.setText(R.string.permission_disable);
+        }
+    }
+
+    private synchronized void buildGoogleApiClient() {
+        mGoogleApiClient =
+                new GoogleApiClient.Builder(this)
+                        .enableAutoManage(this, this)
+                        .addConnectionCallbacks(this)
+                        .addOnConnectionFailedListener(this)
+                        .addApi(ActivityRecognition.API)
+                        .build();
+    }
+
+    private boolean hasPermissions(Activity activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            // Permissions granted at install time.
+            return true;
+        }
+        for (String p : Constants.REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(activity, p) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+
+    private void setUpPermissions(final Activity activity) {
+        if (hasPermissions(activity)) {
+        } else {
+            ActivityCompat.requestPermissions(activity, Constants.REQUIRED_PERMISSIONS, Constants.LOCATION_REQUEST_ID);
+        }
+    }
+
+    private void setUpLogger(){
+        buildGoogleApiClient();
+        Logger logger = new Logger();
+        gnssContainer  = new GnssContainer(this,logger) ;
+        if (logger != null) {
+            logger.setComponent(uiComponent);
+        }
+    }
+
+
+    public class UIComponent {
+
+        private static final int MAX_LENGTH = 42000;
+        private static final int LOWER_THRESHOLD = (int) (MAX_LENGTH * 0.5);
+
+        public synchronized void logTextFragment(final String tag, final String text) {
+            final SpannableStringBuilder builder = new SpannableStringBuilder();
+            builder.append(tag).append(" | ").append(text).append("\n");
+//            builder.setSpan(
+//                    new ForegroundColorSpan(color),
+//                    0 /* start */,
+//                    builder.length(),
+//                    SpannableStringBuilder.SPAN_INCLUSIVE_EXCLUSIVE);
+
+            Activity activity = GpsLoggerActivity.this;
+            if (activity == null) {
+                return;
+            }
+            activity.runOnUiThread(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            logText.append(builder);
+                            SharedPreferences sharedPreferences = PreferenceManager.
+                                    getDefaultSharedPreferences( GpsLoggerActivity.this);
+                            Editable editable = logText.getEditableText();
+                            int length = editable.length();
+                            if (length > MAX_LENGTH) {
+                                editable.delete(0, length - LOWER_THRESHOLD);
+                            }
+                            scrollView.fullScroll(View.FOCUS_DOWN);
+                        }
+                    });
+        }
+
+        public void startActivity(Intent intent) {
+            GpsLoggerActivity.this.startActivity(intent);
+        }
+    }
+
+}
