@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package tutorial;
+//option java_package = "tutorial";
+//import "proto/gnss.proto";
+
+
+ message  Location {
+    double latitude = 1;
+    double longitude = 2;
+    bool is_provider_enabled = 3;
+    bool is_location_status_changed = 4;
+    bool is_location_changed = 5;
+    double altitude = 6 ;
+    float speed = 7 ;
+    sfixed64 time = 8 ;
+    float accuracy = 9;
+}
+
+
+message GnsMeasurements {
+    bool is_gnss_supported = 1;
+    double accumulated_delta_range_last_reset = 2;
+    int32 accumulated_delta_range = 3;
+    double delta_accumulated_uncertainity = 4;
+    double auto_control_db_level = 5;
+    sfixed64 carrier_cycles = 6;
+    double carrier_phase = 7;
+    double carrier_phase_uncertainity = 8;
+    double carrier_to_noise_density = 9;
+    double pseudo_range_rate = 10;
+    sfixed64 time_error_estimate = 11;
+}
+
+
+message GnsClock {
+    int32 clock_leap_second = 1;
+    sfixed64 clock_time_nanos = 2;
+    double clock_uncertainity = 3;
+    sfixed64 full_bias_nanos = 4;
+    double bias_nanos = 5;
+    double bias_uncertainity = 6;
+    double drift_nanos = 7;
+    double drift_uncertainity = 8;
+    int32 harware_clock_count = 9;
+}
+
+message GnsStatus {
+    int32 satellite_count = 1;
+    int32 constellation_type = 2;
+    int32 satellite_id_number = 3;
+    float carrier_to_noise_density = 4;
+    float satellite_elevation = 5;
+    float satellite_azimuth = 6;
+    bool has_ephemeris_present = 7;
+    bool has_almanac_present = 8;
+}

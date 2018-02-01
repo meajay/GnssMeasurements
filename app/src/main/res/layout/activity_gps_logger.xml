@@ -10,7 +10,7 @@
         android:id="@+id/agl_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="40dp">
+        android:layout_marginBottom="60dp">
 
     <TextView
         android:id="@+id/agl_log"
@@ -18,6 +18,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
+        android:textColor="#444444"
+        android:textSize="15dp"
+        android:text=""
         android:layout_marginRight="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -30,24 +33,30 @@
 
     <TextView
         android:id="@+id/agl_start"
-        android:layout_width="wrap_content"
+        android:layout_width="85dp"
         android:layout_alignParentLeft="true"
         android:layout_marginBottom="20dp"
         android:layout_marginLeft="20dp"
+        android:background="@drawable/btn_background"
         android:text="Start"
         android:textSize="16dp"
+        android:textColor="#fff"
+        android:gravity="center"
         android:layout_alignParentBottom="true"
-        android:layout_height="wrap_content" />
+        android:layout_height="34dp" />
 
     <TextView
         android:id="@+id/agl_end"
-        android:layout_width="wrap_content"
+        android:layout_width="85dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_marginRight="20dp"
+        android:background="@drawable/btn_background"
         android:text="Stop"
+        android:textColor="#fff"
+        android:gravity="center"
         android:textSize="16dp"
         android:layout_marginBottom="20dp"
-        android:layout_height="wrap_content" />
+        android:layout_height="34dp" />
 
 </RelativeLayout>

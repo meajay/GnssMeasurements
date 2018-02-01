@@ -1,6 +1,7 @@
 package testme.java.com.gpsdatalogger;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -18,6 +19,8 @@ import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.ScrollView;
@@ -29,16 +32,17 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.ActivityRecognition;
 
-public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener , View.OnClickListener{
+public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
 
-   private GoogleApiClient mGoogleApiClient;
-   private boolean isPermissionEnabled;
-   private Logger logger ;
-   public TextView logText  , start , end ;
-   public ScrollView scrollView ;
-   private boolean isStartPressed = false , isEndPressed = false ;
-   private  GnssContainer gnssContainer;
+    private GoogleApiClient mGoogleApiClient;
+    private boolean isPermissionEnabled;
+    private Logger logger;
+    public TextView logText, start, end;
+    public ScrollView scrollView;
+    private boolean isStartPressed = false, isEndPressed = false , isDataLogged = false , isDataLoggedStarted = false ;
+    private GnssContainer gnssContainer;
     private final UIComponent uiComponent = new UIComponent();
+    private  SaveFile fileLog = null ;
 
 
     @Override
@@ -49,9 +53,16 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
         start = findViewById(R.id.agl_start);
         end = findViewById(R.id.agl_end);
         scrollView = findViewById(R.id.agl_scroll);
-
         start.setOnClickListener(this);
         end.setOnClickListener(this);
+
+        end.setBackground(getDrawable(R.drawable.btn_fade_background));
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
 
         isPermissionEnabled = hasPermissions(this);
         if (isPermissionEnabled) {
@@ -60,11 +71,6 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
             requestPermissions(Constants.REQUIRED_PERMISSIONS, Constants.LOCATION_REQUEST_ID);
         }
 
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
 
     }
 
@@ -75,48 +81,56 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
 
     @Override
     protected void onDestroy() {
-        if(gnssContainer!=null) {
+        if (gnssContainer != null) {
             gnssContainer.unregisterAll();
         }
-        super.onDestroy();
         super.onDestroy();
     }
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
+        switch (v.getId()) {
             case R.id.agl_start:
-                if(isPermissionEnabled) {
+                if (isPermissionEnabled) {
                     if (isStartPressed) {
-                        Toast.makeText(this, getString(R.string.already_logging), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, getString(R.string.already_logging), Toast.LENGTH_SHORT).show();
+
                     } else {
                         isStartPressed = true;
                         isEndPressed = false;
-                        if(gnssContainer!=null) {
+                        isDataLoggedStarted = true ;
+                        if (gnssContainer != null) {
                             gnssContainer.registerAll();
+                            if(fileLog!=null){
+                                fileLog.saveFileLog();
+                            }
                         }
-                        Toast.makeText(this, getString(R.string.logging_start), Toast.LENGTH_LONG).show();
+                        start.setBackground(getDrawable(R.drawable.btn_fade_background));
+                        end.setBackground(getDrawable(R.drawable.btn_background));
+                        Toast.makeText(this, getString(R.string.logging_start), Toast.LENGTH_SHORT).show();
                     }
-                }
-                else
-                    Toast.makeText(this,getString(R.string.allow_permissions) ,Toast.LENGTH_LONG).show();
-                break ;
+                } else
+                    Toast.makeText(this, getString(R.string.allow_permissions), Toast.LENGTH_SHORT).show();
+                break;
 
             case R.id.agl_end:
-                if(isPermissionEnabled) {
+                if (isPermissionEnabled) {
                     if (isEndPressed) {
-                        Toast.makeText(this, getString(R.string.first_start), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, getString(R.string.first_start), Toast.LENGTH_SHORT).show();
                     } else {
                         isEndPressed = true;
                         isStartPressed = false;
-                        if(gnssContainer!=null) {
+                        isDataLogged = true ;
+                        if (gnssContainer != null) {
                             gnssContainer.unregisterAll();
                         }
-                        Toast.makeText(this, getString(R.string.logging_end), Toast.LENGTH_LONG).show();
+                        start.setBackground(getDrawable(R.drawable.btn_background));
+                        end.setBackground(getDrawable(R.drawable.btn_fade_background));
+                        scrollView.fullScroll(View.FOCUS_UP);
+                        Toast.makeText(this, getString(R.string.logging_end), Toast.LENGTH_SHORT).show();
                     }
-                }
-                else
-                Toast.makeText(this,getString(R.string.allow_permissions) ,Toast.LENGTH_LONG).show();
+                } else
+                    Toast.makeText(this, getString(R.string.allow_permissions), Toast.LENGTH_SHORT).show();
                 break;
 
 
@@ -135,6 +149,30 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.share_setting, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_share:
+                if (isDataLoggedStarted) {
+                    if(isDataLogged)
+                    fileLog.send();
+                    else
+                        Toast.makeText(this,"FINISH LOGGING BEFORE SENDING DATA",Toast.LENGTH_SHORT).show() ;
+                } else {
+                    Toast.makeText(GpsLoggerActivity.this, "NOTHING TO SHARE , PLEASE LOG SOME DATA", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+        }
+        return true;
+    }
+
+
+    @Override
     public void onConnectionSuspended(int i) {
         Log.i(Constants.LOG_TAG, "Connected Suspended");
     }
@@ -149,22 +187,23 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
             }
         }
         if (flag) {
-                setUpLogger();
-        }
-        else{
-            Toast.makeText(this, getString(R.string.permission_disable) , Toast.LENGTH_LONG).show();
+            setUpLogger();
+        } else {
+            Toast.makeText(this, getString(R.string.permission_disable), Toast.LENGTH_SHORT).show();
             logText.setText(R.string.permission_disable);
         }
     }
 
     private synchronized void buildGoogleApiClient() {
-        mGoogleApiClient =
-                new GoogleApiClient.Builder(this)
-                        .enableAutoManage(this, this)
-                        .addConnectionCallbacks(this)
-                        .addOnConnectionFailedListener(this)
-                        .addApi(ActivityRecognition.API)
-                        .build();
+        if(mGoogleApiClient == null) {
+            mGoogleApiClient =
+                    new GoogleApiClient.Builder(this)
+                            .enableAutoManage(this, this)
+                            .addConnectionCallbacks(this)
+                            .addOnConnectionFailedListener(this)
+                            .addApi(ActivityRecognition.API)
+                            .build();
+        }
     }
 
     private boolean hasPermissions(Activity activity) {
@@ -181,20 +220,16 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
     }
 
 
-
-    private void setUpPermissions(final Activity activity) {
-        if (hasPermissions(activity)) {
-        } else {
-            ActivityCompat.requestPermissions(activity, Constants.REQUIRED_PERMISSIONS, Constants.LOCATION_REQUEST_ID);
-        }
-    }
-
-    private void setUpLogger(){
+    private void  setUpLogger() {
         buildGoogleApiClient();
         Logger logger = new Logger();
-        gnssContainer  = new GnssContainer(this,logger) ;
-        if (logger != null) {
+        if(fileLog == null)
+         fileLog = new SaveFile(GpsLoggerActivity.this) ;
+        if(gnssContainer == null)
+        gnssContainer = new GnssContainer(this, logger);
+        if (logger != null && fileLog!=null) {
             logger.setComponent(uiComponent);
+            fileLog.setComponent(uiComponent);
         }
     }
 
@@ -223,7 +258,7 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
                         public void run() {
                             logText.append(builder);
                             SharedPreferences sharedPreferences = PreferenceManager.
-                                    getDefaultSharedPreferences( GpsLoggerActivity.this);
+                                    getDefaultSharedPreferences(GpsLoggerActivity.this);
                             Editable editable = logText.getEditableText();
                             int length = editable.length();
                             if (length > MAX_LENGTH) {
