@@ -13,7 +13,7 @@ public  class Constants {
     public static String LOG_TAG = "LOG";
     public static final int LOCATION_REQUEST_ID = 1000;
     public static final String[] REQUIRED_PERMISSIONS = {
-            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE
+            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE , Manifest.permission.READ_EXTERNAL_STORAGE
     };
 
     public static final long LOCATION_RATE_GPS_MS = TimeUnit.SECONDS.toMillis(1L);
@@ -41,8 +41,8 @@ public  class Constants {
     public static final String GNSS_NAVAIGATION_MESSAGE = "GNSS_NAVAIGATION_MESSAGE : " ;
     public static final String GNSS_NAVAIGATION_MESSAGE_CHANGED = "GNSS_NAVAIGATION_MESSAGE_CHANGED : " ;
     public static final String GNSS_MEASUREMENT_STATUS_CHANGED = "GNSS_MEASUREMENT_STATUS_CHANGED : " ;
-    public static final String REGISTRATION = "REGISTRATION" ;
-    public static final String FILE_NAME = "Gnss logs" ;
+    public static final String REGISTRATION = "REGISTRATION :" ;
+    public static final String FILE_NAME = "Gnss_logs" ;
     public static final int MINIMUM_USABLE_BYTES = 1500 ;
     public static final int MAX_FILES_STORED = 100;
 

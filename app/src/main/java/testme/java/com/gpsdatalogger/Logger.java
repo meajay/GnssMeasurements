@@ -76,9 +76,10 @@ public class Logger implements GnssListener {
 
     @Override
     public void onLocationChanged(Location location) {
-        logLocationEvent(Constants.LOCATION_CHANGED +"\n"+ "LATITUDE" +location.getLatitude() + "\n" + "LATITUDE" + location.getLatitude());
-        logLocationEvent("\n"+ "ALTITUDE" +location.getAltitude() + "\n" + "SPEED" + location.getSpeed());
-        logLocationEvent("\n"+ "ACCURACY" +location.getAccuracy() + "\n" + "TIME" + location.getTime() + "\n");
+       String event = Constants.LOCATION_CHANGED +"\n"+ "LATITUDE " +location.getLatitude() + "\n" + "LATITUDE " + location.getLatitude()
+        +"\n"+ "ALTITUDE " +location.getAltitude() + "\n" + "SPEED " + location.getSpeed()
+        +"\n"+ "ACCURACY " +location.getAccuracy() + "\n" + "TIME " + location.getTime() + "\n";
+       logLocationEvent(event);
 
         gnssLocation = Gnss.Location.newBuilder()
                 .setIsLocationChanged(true)
@@ -196,7 +197,7 @@ public class Logger implements GnssListener {
     }
 
     private void logLocationEvent(String event) {
-        logEvent("LOCATION_EVENT", event + "\n");
+        logEvent("LOCATION_EVENT : \n", event + "\n");
     }
 
     private void logEvent(String tag, String message) {

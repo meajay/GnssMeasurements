@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Gps Data Logger</string>
+    <string name="app_name">Gnss Logger</string>
     <string name="permission_disable">Mandatory Permissions not allowed</string>
     <string name="already_logging">GPS Data Already Logging</string>
     <string name="first_start">No data Logged.Please start.</string>

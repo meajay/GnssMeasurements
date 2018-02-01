@@ -1,5 +1,6 @@
 package testme.java.com.gpsdatalogger;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -8,6 +9,8 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.support.compat.*;
 import android.support.v4.*;
+import android.support.v4.BuildConfig;
+import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
 import android.widget.Toast;
 
@@ -87,8 +90,7 @@ public class SaveFile extends FileProvider {
             return;
         }
 
-        super_file = file;
-
+        super_file = currentFile;
         fWriter = currentFileWriter;
 
 //        if (currentFileWriter != null) {
@@ -173,24 +175,24 @@ public class SaveFile extends FileProvider {
         }
 
         try {
+            if(fWriter!=null)
             fWriter.write("\n ----------FILE ENDED----------- \n");
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        if (fWriter != null) {
-            try {
-                fWriter.flush();
-                fWriter.close();
-                fWriter = null;
-            } catch (IOException e) {
-                Toast.makeText(context, "UNABLE TO CLOSE ALL STREAMS", Toast.LENGTH_SHORT).show();
-                return;
-            }
-        }
+//        if (fWriter != null) {
+//            try {
+//                fWriter.flush();
+//                fWriter.close();
+//                fWriter = null;
+//            } catch (IOException e) {
+//                Toast.makeText(context, "UNABLE TO CLOSE ALL STREAMS", Toast.LENGTH_SHORT).show();
+//                return;
+//            }
+//        }
 
         Toast.makeText(context, "FILE SAVED " + fPath, Toast.LENGTH_SHORT).show();
-
 
 
     }
@@ -205,13 +207,12 @@ public class SaveFile extends FileProvider {
                 Toast.makeText(context, "ERROR IN WRITING FILE", Toast.LENGTH_SHORT).show();
                 e.printStackTrace();
             }
-        }
-        else{
+        } else {
             Toast.makeText(context, "DATA CANNOT WRITTEN", Toast.LENGTH_SHORT).show();
         }
     }
 
-    public void send() {
+    public void send(Activity activity) {
         if (super_file == null) {
             return;
         }
@@ -227,16 +228,28 @@ public class SaveFile extends FileProvider {
             }
         }
 
+
+        Uri fileURI =
+                FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".gnssprovider", super_file);
+//        Intent shareIntent = ShareCompat.IntentBuilder.from(activity)
+//                .setType("text/plain")
+//                .setStream(fileURI)
+//                .getIntent();
+//// Provide read access
+//        shareIntent.setData(fileURI);
+//        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//        activity.startActivity(shareIntent);
+
+
         Intent emailIntent = new Intent(Intent.ACTION_SEND);
         emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         emailIntent.setType("*/*");
         emailIntent.putExtra(Intent.EXTRA_SUBJECT, "gnss_log");
         emailIntent.putExtra(Intent.EXTRA_TEXT, "");
-
-        Uri fileURI =
-                FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", super_file);
         emailIntent.putExtra(Intent.EXTRA_STREAM, fileURI);
-        getComponent().startActivity(emailIntent);
+        getComponent().startActivity(Intent.createChooser(emailIntent, "SENDING LOG"));
+
+
     }
 
     public synchronized GpsLoggerActivity.UIComponent getComponent() {

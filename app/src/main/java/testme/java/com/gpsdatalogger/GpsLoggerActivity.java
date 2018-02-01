@@ -99,6 +99,7 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
                         isStartPressed = true;
                         isEndPressed = false;
                         isDataLoggedStarted = true ;
+                        isDataLogged = false ;
                         if (gnssContainer != null) {
                             gnssContainer.registerAll();
                             if(fileLog!=null){
@@ -162,8 +163,10 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
         switch (item.getItemId()) {
             case R.id.menu_share:
                 if (isDataLoggedStarted) {
-                    if(isDataLogged)
-                    fileLog.send();
+                    if(isDataLogged) {
+                        Activity activity = GpsLoggerActivity.this;
+                        fileLog.send(activity);
+                    }
                     else
                         Toast.makeText(this,"FINISH LOGGING BEFORE SENDING DATA",Toast.LENGTH_SHORT).show() ;
                 } else {
