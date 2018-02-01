@@ -1,5 +1,6 @@
 package testme.java.com.gpsdatalogger;
 
+import android.content.Context;
 import android.location.GnssClock;
 import android.location.GnssMeasurement;
 import android.location.GnssMeasurementsEvent;
@@ -31,7 +32,22 @@ public class Logger implements GnssListener {
 
     private GpsLoggerActivity.UIComponent component;
 
-   Gnss.Location.Builder gnssLocation =  Gnss.Location.newBuilder();
+    interface LoggerDataChanged{
+        void onDataChanged(String s);
+    }
+
+    private LoggerDataChanged lDataChanged;
+
+   private Gnss.Location  gnssLocation ;
+   private Gnss.GnsClock  gnsClock ;
+   private Gnss.GnsMeasurements gnssMeasurements ;
+   private Gnss.GnsStatus gnsStatus ;
+   private Gnss.GnsEvents gnsEvents ;
+   private Gnss.GnsNmeaEvent gnsNmea ;
+
+   public Logger(LoggerDataChanged loggerDataChanged){
+       lDataChanged = loggerDataChanged ;
+   }
 
     public synchronized GpsLoggerActivity.UIComponent getComponent() {
         return component;
@@ -44,13 +60,18 @@ public class Logger implements GnssListener {
     @Override
     public void onProviderEnabled(String provider) {
         logLocationEvent(Constants.PROVIDER_ENABLED + provider+"\n");
-        gnssLocation.setIsProviderEnabled(true);
+        gnssLocation = Gnss.Location.newBuilder()
+                        .setIsProviderEnabled(true).build();
+        lDataChanged.onDataChanged(gnssLocation.toString());
     }
 
     @Override
     public void onProviderDisabled(String provider) {
         logLocationEvent(Constants.PROVIDER_DISABLED  + provider+"\n");
-        gnssLocation.setIsProviderEnabled(false);
+        gnssLocation = Gnss.Location.newBuilder()
+                .setIsProviderEnabled(false).build();
+        lDataChanged.onDataChanged(gnssLocation.toString());
+     //   gnssLocation.setIsProviderEnabled(false);
     }
 
     @Override
@@ -58,6 +79,17 @@ public class Logger implements GnssListener {
         logLocationEvent(Constants.LOCATION_CHANGED +"\n"+ "LATITUDE" +location.getLatitude() + "\n" + "LATITUDE" + location.getLatitude());
         logLocationEvent("\n"+ "ALTITUDE" +location.getAltitude() + "\n" + "SPEED" + location.getSpeed());
         logLocationEvent("\n"+ "ACCURACY" +location.getAccuracy() + "\n" + "TIME" + location.getTime() + "\n");
+
+        gnssLocation = Gnss.Location.newBuilder()
+                .setIsLocationChanged(true)
+                .setLatitude(location.getLatitude())
+                .setLongitude(location.getLongitude())
+                .setAltitude(location.getAltitude())
+                .setSpeed(location.getSpeed())
+                .setAccuracy(location.getAccuracy())
+                .setTime(location.getTime())
+                .build();
+        lDataChanged.onDataChanged(gnssLocation.toString());
     }
 
     @Override
@@ -68,6 +100,10 @@ public class Logger implements GnssListener {
                     //    "onStatusChanged: provider=%s, status=%s, extras=%s",
                         provider, locationStatusToString(status), extras +"\n");
         logLocationEvent(message);
+        gnssLocation = Gnss.Location.newBuilder()
+                .setIsLocationStatusChanged(true)
+                .build();
+        lDataChanged.onDataChanged(gnssLocation.toString());
     }
 
     @Override
@@ -90,27 +126,52 @@ public class Logger implements GnssListener {
             builder.append(Constants.GNSS_CARRIER_TO_NOISE_DENSITY + measurement.getCn0DbHz() + "/n");
             builder.append(Constants.GNSS_PSEUDO_RANGE_RATE + measurement.getPseudorangeRateMetersPerSecond() + "/n");
             builder.append(Constants.GNSS_ESTIMATED_TIME_ERROR + measurement.getReceivedSvTimeUncertaintyNanos() + "/n");
+
+            gnssMeasurements = Gnss.GnsMeasurements.newBuilder()
+                    .setAccumulatedDeltaRangeLastReset(measurement.getAccumulatedDeltaRangeMeters())
+                    .setAccumulatedDeltaRange( measurement.getAccumulatedDeltaRangeState())
+                    .setCarrierCycles(measurement.getCarrierCycles())
+                    .setCarrierPhaseUncertainity(measurement.getCarrierPhaseUncertainty())
+                    .setDeltaAccumulatedUncertainity(measurement.getAccumulatedDeltaRangeUncertaintyMeters())
+                    .setCarrierPhase(measurement.getCarrierPhase())
+                    .setPseudoRangeRate(measurement.getPseudorangeRateMetersPerSecond())
+                    .setTimeErrorEstimate(measurement.getReceivedSvTimeUncertaintyNanos())
+                    .setCarrierToNoiseDensity(measurement.getCn0DbHz())
+                    .build();
+            lDataChanged.onDataChanged(gnssLocation.toString());
         }
     }
 
     @Override
     public void onGnssMeasurementsStatusChanged(int status) {
         logMeasurementEvent(Constants.GNSS_MEASUREMENT_STATUS_CHANGED + gnssMeasurementsStatusToString(status) + "\n");
+        gnsEvents = Gnss.GnsEvents.newBuilder()
+                .setGnssMeasurementStatus(status).build();
+        lDataChanged.onDataChanged(gnsEvents.toString());
     }
 
     @Override
     public void onGnssNavigationMessageReceived(GnssNavigationMessage event) {
         logNavigationMessageEvent(Constants.GNSS_NAVAIGATION_MESSAGE + event + "\n");
+        gnsEvents = Gnss.GnsEvents.newBuilder()
+                .setGnssMessageReceived(event.toString()).build();
+        lDataChanged.onDataChanged(gnsEvents.toString());
     }
 
     @Override
     public void onGnssNavigationMessageStatusChanged(int status) {
         logNavigationMessageEvent(Constants.GNSS_NAVAIGATION_MESSAGE_CHANGED  + getGnssNavigationMessageStatus(status) + "\n");
+        gnsEvents = Gnss.GnsEvents.newBuilder()
+                .setGnssNavigationChanged(getGnssNavigationMessageStatus(status)).build();
+        lDataChanged.onDataChanged(gnsEvents.toString());
     }
 
     @Override
     public void onGnssStatusChanged(GnssStatus gnssStatus) {
         logStatusEvent(Constants.GNSS_STATUS_CHANGED + gnssStatusToString(gnssStatus) + "\n");
+        gnsEvents = Gnss.GnsEvents.newBuilder()
+                    .setIsGnssStatusChanged(true).build();
+        lDataChanged.onDataChanged(gnsEvents.toString());
     }
 
     @Override
@@ -120,12 +181,18 @@ public class Logger implements GnssListener {
 
     @Override
     public void onNmeaReceived(long l, String s) {
-        logNmeaEvent(String.format( "ON_NMEA_RECEIVED \n" +"TIMESTAMP : " + l + "\n"));
+        logNmeaEvent(String.format( "ON_NMEA_RECEIVED TIMESTAMP : " + l + "\n"));
+        gnsNmea = Gnss.GnsNmeaEvent.newBuilder()
+                .setNmeaReceivedTimestamp(l).build();
+        lDataChanged.onDataChanged(gnsNmea.toString());
     }
 
     @Override
     public void onTTFFReceived(long l) {
-        logNmeaEvent(String.format( "ON TTFF_RECEIVED :" +""+l) + "\n");
+        logNmeaEvent(String.format( "ON TTFF_RECEIVED TIMESTAMP : " +l) + "\n");
+        gnsEvents = Gnss.GnsEvents.newBuilder()
+                .setTtffReceivedTimestamp(l).build();
+        lDataChanged.onDataChanged(gnsEvents.toString());
     }
 
     private void logLocationEvent(String event) {
@@ -206,6 +273,19 @@ public class Logger implements GnssListener {
                         format,
                         "HARDWARE_CLOCK_DISCONTINUITY_COUNT : ",
                         gnssClock.getHardwareClockDiscontinuityCount()) + "\n");
+
+        gnsClock = GnsClock.newBuilder()
+                .setClockLeapSecond(gnssClock.getLeapSecond())
+                .setClockTimeNanos(gnssClock.getTimeNanos())
+                .setClockUncertainity(gnssClock.getTimeUncertaintyNanos())
+                .setHarwareClockCount(gnssClock.getHardwareClockDiscontinuityCount())
+                .setBiasNanos(gnssClock.getBiasNanos())
+                .setBiasUncertainity(gnssClock.getBiasUncertaintyNanos())
+                .setDriftNanos(gnssClock.getDriftNanosPerSecond())
+                .setDriftUncertainity(gnssClock.getDriftUncertaintyNanosPerSecond())
+                .setFullBiasNanos(gnssClock.getFullBiasNanos()).build();
+        lDataChanged.onDataChanged(gnssClock.toString());
+
 
         return builder.toString();
     }
@@ -350,6 +430,18 @@ public class Logger implements GnssListener {
             builder.append("GNSS_STAUTS_EPEMERIC : ").append(gnssStatus.hasEphemerisData(i)).append("\n");
             builder.append("GNSS_STATUS_ALMANC_DATA : ").append(gnssStatus.hasAlmanacData(i)).append("\n");
             builder.append("GNSS_STATUS_USED_IN_FIX : ").append(gnssStatus.usedInFix(i)).append("\n");
+
+            gnsStatus = Gnss.GnsStatus.newBuilder()
+                    .setCarrierToNoiseDensity(gnssStatus.getCn0DbHz(i))
+                    .setConstellationName(getConstellationName(gnssStatus.getConstellationType(i)))
+                    .setHasAlmanacPresent(gnssStatus.hasAlmanacData(i))
+                    .setHasEphemerisPresent(gnssStatus.hasEphemerisData(i))
+                    .setCarrierToNoiseDensity(gnssStatus.getCn0DbHz(i))
+                    .setSatelliteAzimuth(gnssStatus.getAzimuthDegrees(i))
+                    .setSatelliteCount(gnssStatus.getSatelliteCount())
+                    .setSatelliteIdNumber(gnssStatus.getSvid(i)).build();
+
+            lDataChanged.onDataChanged(gnsStatus.toString());
         }
         return builder.toString();
     }

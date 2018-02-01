@@ -47,11 +47,24 @@ message GnsClock {
 
 message GnsStatus {
     int32 satellite_count = 1;
-    int32 constellation_type = 2;
+    string constellation_name = 2;
     int32 satellite_id_number = 3;
     float carrier_to_noise_density = 4;
     float satellite_elevation = 5;
     float satellite_azimuth = 6;
     bool has_ephemeris_present = 7;
     bool has_almanac_present = 8;
+}
+
+message GnsEvents {
+    int32 gnss_measurement_status = 1;
+    string gnss_message_received = 2 ;
+    string gnss_navigation_changed = 3;
+    bool is_gnss_status_changed = 4 ;
+    sfixed64 ttff_received_timestamp = 5;
+
+}
+
+message GnsNmeaEvent{
+    sfixed64 nmea_received_timestamp = 1;
 }

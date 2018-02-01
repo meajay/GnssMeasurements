@@ -32,7 +32,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.ActivityRecognition;
 
-public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, View.OnClickListener {
+public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, View.OnClickListener , Logger.LoggerDataChanged {
 
     private GoogleApiClient mGoogleApiClient;
     private boolean isPermissionEnabled;
@@ -123,6 +123,9 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
                         isDataLogged = true ;
                         if (gnssContainer != null) {
                             gnssContainer.unregisterAll();
+                        }
+                        if(fileLog!=null){
+                            fileLog.closeStreams();
                         }
                         start.setBackground(getDrawable(R.drawable.btn_background));
                         end.setBackground(getDrawable(R.drawable.btn_fade_background));
@@ -222,7 +225,7 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
 
     private void  setUpLogger() {
         buildGoogleApiClient();
-        Logger logger = new Logger();
+        Logger logger = new Logger(this);
         if(fileLog == null)
          fileLog = new SaveFile(GpsLoggerActivity.this) ;
         if(gnssContainer == null)
@@ -274,4 +277,10 @@ public class GpsLoggerActivity extends AppCompatActivity implements GoogleApiCli
         }
     }
 
+    @Override
+    public void onDataChanged(String s) {
+        if(fileLog!=null){
+            fileLog.writeData(s);
+            }
+        }
 }

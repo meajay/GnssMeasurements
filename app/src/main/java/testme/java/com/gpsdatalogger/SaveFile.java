@@ -36,28 +36,28 @@ public class SaveFile extends FileProvider {
     private Context context;
     private GpsLoggerActivity.UIComponent component;
     private BufferedWriter fWriter;
-    private File super_file ;
-    private String fPath , fileName ;
+    private File super_file;
+    private String fPath, fileName;
 
 
     public SaveFile(Context context) {
-        this.context = context ;
+        this.context = context;
     }
+
 
     public void saveFileLog() {
         if (externalMemoryAvailable()) {
-                if(getAvailableExternalMemorySize().length()>3){
-                   createFile();
-                }
-                else{
-                    Toast.makeText(context, "MEMORY NOT AVAILABLE", Toast.LENGTH_SHORT).show();
-                }
+            if (getAvailableExternalMemorySize().length() > 3) {
+                createFile();
+            } else {
+                Toast.makeText(context, "MEMORY NOT AVAILABLE", Toast.LENGTH_SHORT).show();
+            }
 
         }
     }
 
-    public void createFile(){
-       File  file = new File(Environment.getExternalStorageDirectory(), Constants.FILE_NAME);
+    public void createFile() {
+        File file = new File(Environment.getExternalStorageDirectory(), Constants.FILE_NAME);
         file.mkdirs();
         Date now = new Date();
         SimpleDateFormat formatter = new SimpleDateFormat("yyy_MM_dd_HH_mm_ss");
@@ -79,35 +79,17 @@ public class SaveFile extends FileProvider {
             currentFileWriter.write("Version : " + Build.VERSION.RELEASE);
             currentFileWriter.newLine();
             currentFileWriter.write("##");
+            currentFileWriter.newLine();
 
 
         } catch (IOException e) {
-            Toast.makeText(context, "NOT ABLE TO OPEN FILE",Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, "NOT ABLE TO OPEN FILE", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        try{
-            Gnss.Location gnssLocation = Gnss.Location.newBuilder().
-                    setIsLocationChanged(false)
-                    .setIsLocationStatusChanged(false)
-                    .setIsProviderEnabled(true)
-                    .setAccuracy(19.9f)
-                    .setAltitude(12.25f)
-                    .setLatitude(19.90f)
-                    .setLatitude(65.43f).build();
+        super_file = file;
 
-
-
-           currentFileWriter.write(gnssLocation.toByteString().toString());
-        }
-        catch (IOException ex){
-            Toast.makeText(context, "ERROR IN WRITING FILE",Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        super_file = file ;
-
-        fWriter = currentFileWriter ;
+        fWriter = currentFileWriter;
 
 //        if (currentFileWriter != null) {
 //            try {
@@ -124,7 +106,7 @@ public class SaveFile extends FileProvider {
     }
 
 
-    private  boolean externalMemoryAvailable() {
+    private boolean externalMemoryAvailable() {
         String state = Environment.getExternalStorageState();
         if (Environment.MEDIA_MOUNTED.equals(state)) {
             return true;
@@ -138,12 +120,12 @@ public class SaveFile extends FileProvider {
     }
 
     private String getAvailableExternalMemorySize() {
-            File path = Environment.getExternalStorageDirectory();
-            StatFs stat = new StatFs(path.getPath());
-            long blockSize = stat.getBlockSizeLong();
-            long availableBlocks = stat.getAvailableBlocksLong();
-            return formatSize(availableBlocks * blockSize);
-        }
+        File path = Environment.getExternalStorageDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSizeLong();
+        long availableBlocks = stat.getAvailableBlocksLong();
+        return formatSize(availableBlocks * blockSize);
+    }
 
     public static String formatSize(long size) {
         String suffix = null;
@@ -169,7 +151,7 @@ public class SaveFile extends FileProvider {
         return resultBuffer.toString();
     }
 
-    public void deleteAllEmptyFiles(File file){
+    public void deleteAllEmptyFiles(File file) {
         DeleteFile filter = new DeleteFile(file);
         for (File existingFile : file.listFiles(filter)) {
             existingFile.delete();
@@ -185,28 +167,16 @@ public class SaveFile extends FileProvider {
         }
     }
 
-    public void send() {
+    public void closeStreams() {
         if (super_file == null) {
             return;
         }
 
         try {
-            fWriter.write("----------FILE ENDED----------- \n");
+            fWriter.write("\n ----------FILE ENDED----------- \n");
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        Intent emailIntent = new Intent(Intent.ACTION_SEND);
-        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        emailIntent.setType("*/*");
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "gnss_log");
-        emailIntent.putExtra(Intent.EXTRA_TEXT, "");
-        Toast.makeText(context, "FILE OPENED " + fPath , Toast.LENGTH_SHORT).show();
-
-        Uri fileURI =
-                FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", super_file);
-        emailIntent.putExtra(Intent.EXTRA_STREAM, fileURI);
-        getComponent().startActivity(emailIntent);
 
         if (fWriter != null) {
             try {
@@ -214,10 +184,59 @@ public class SaveFile extends FileProvider {
                 fWriter.close();
                 fWriter = null;
             } catch (IOException e) {
-                 Toast.makeText(context ,"UNABLE TO CLOSE ALL STREAMS" , Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "UNABLE TO CLOSE ALL STREAMS", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
+
+        Toast.makeText(context, "FILE SAVED " + fPath, Toast.LENGTH_SHORT).show();
+
+
+
+    }
+
+    public void writeData(String data) {
+        if (fWriter != null) {
+            try {
+                fWriter.newLine();
+                fWriter.write(data);
+                fWriter.newLine();
+            } catch (IOException e) {
+                Toast.makeText(context, "ERROR IN WRITING FILE", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+            }
+        }
+        else{
+            Toast.makeText(context, "DATA CANNOT WRITTEN", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void send() {
+        if (super_file == null) {
+            return;
+        }
+
+        if (fWriter != null) {
+            try {
+                fWriter.flush();
+                fWriter.close();
+                fWriter = null;
+            } catch (IOException e) {
+                Toast.makeText(context, "UNABLE TO CLOSE ALL STREAMS", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        Intent emailIntent = new Intent(Intent.ACTION_SEND);
+        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        emailIntent.setType("*/*");
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "gnss_log");
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "");
+
+        Uri fileURI =
+                FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", super_file);
+        emailIntent.putExtra(Intent.EXTRA_STREAM, fileURI);
+        getComponent().startActivity(emailIntent);
     }
 
     public synchronized GpsLoggerActivity.UIComponent getComponent() {
@@ -227,5 +246,4 @@ public class SaveFile extends FileProvider {
     public synchronized void setComponent(GpsLoggerActivity.UIComponent component) {
         this.component = component;
     }
-
 }
